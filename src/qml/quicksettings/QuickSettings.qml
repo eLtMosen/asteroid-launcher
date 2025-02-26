@@ -35,6 +35,7 @@ import org.nemomobile.systemsettings 1.0
 import Nemo.Ngf 1.0
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
+import Connman 0.2
 
 Item {
     id: rootitem
@@ -43,6 +44,7 @@ Item {
 
     property bool forbidLeft:  true
     property bool forbidRight: true
+property int toggleSize: Dims.l(28)
 
     MceBatteryLevel {
         id: batteryChargePercentage
@@ -52,57 +54,10 @@ Item {
         id: batteryChargeState
     }
 
-    DBusInterface {
-        id: mce_dbus
-
-        service: "com.nokia.mce"
-        path: "/com/nokia/mce/request"
-        iface: "com.nokia.mce.request"
-
-        bus: DBus.SystemBus
-    }
-
-    QuickSettingsToggle {
-        id: lockedToggle
-        anchors.top: rootitem.top
-        anchors.horizontalCenter: rootitem.horizontalCenter
-        icon: "ios-unlock"
-        togglable: false
-        toggled: false
-        onUnchecked: mce_dbus.call("req_display_state_lpm", undefined)
-    }
-
+    // Moved components outside Grid
     DisplaySettings {
         id: displaySettings
         onBrightnessChanged: updateBrightnessToggle()
-    }
-
-    QuickSettingsToggle {
-        id: brightnessToggle
-        anchors.left: rootitem.left
-        anchors.verticalCenter: rootitem.verticalCenter
-        icon: "ios-sunny"
-        onChecked: displaySettings.brightness = 100
-        onUnchecked: displaySettings.brightness = 0
-        Component.onCompleted: updateBrightnessToggle()
-    }
-
-    function updateBrightnessToggle() {
-        brightnessToggle.toggled = displaySettings.brightness > 80
-    }
-
-    BluetoothStatus {
-        id: btStatus
-        onPoweredChanged: bluetoothToggle.toggled = btStatus.powered
-    }
-
-    QuickSettingsToggle {
-        id: bluetoothToggle
-        anchors.centerIn: parent
-        icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
-        onChecked:   btStatus.powered = true
-        onUnchecked: btStatus.powered = false
-        Component.onCompleted: toggled = btStatus.powered
     }
 
     NonGraphicalFeedback {
@@ -111,7 +66,7 @@ Item {
     }
 
     ProfileControl {
-         id: profileControl
+        id: profileControl
     }
 
     Timer {
@@ -121,17 +76,89 @@ Item {
         onTriggered: feedback.play()
     }
 
-    QuickSettingsToggle {
-        id: hapticsToggle
-        anchors.right: rootitem.right
-        anchors.verticalCenter: rootitem.verticalCenter
-        icon: "ios-watch-vibrating"
-        onChecked: {
-            profileControl.profile = "general";
-            delayTimer.start();
+    BluetoothStatus {
+        id: btStatus
+        onPoweredChanged: bluetoothToggle.toggled = btStatus.powered
+    }
+
+    NetworkTechnology {
+        id: wifiStatus
+        path: "/net/connman/technology/wifi"
+    }
+
+    function updateBrightnessToggle() {
+        brightnessToggle.toggled = displaySettings.brightness > 80
+    }
+
+    Grid {
+        id: quickSettingsGrid
+        anchors.centerIn: parent
+        rows: 2
+        columns: 3
+        spacing: Dims.l(2)
+
+        // Row 1, Column 1: brightness Toggle
+        QuickSettingsToggle {
+            id: brightnessToggle
+            width: toggleSize
+            height: toggleSize
+            icon: "ios-sunny"
+            onChecked: displaySettings.brightness = 100
+            onUnchecked: displaySettings.brightness = 0
+            Component.onCompleted: updateBrightnessToggle()
         }
-        onUnchecked: profileControl.profile = "silent";
-        Component.onCompleted: toggled = profileControl.profile == "general"
+
+        // Row 1, Column 2: Sound Toggle (dummy)
+        QuickSettingsToggle {
+            id: soundToggle
+            width: toggleSize
+            height: toggleSize
+            icon: "ios-sound-indicator-high"
+        }
+
+        // Row 1, Column 3: Haptics Toggle
+        QuickSettingsToggle {
+            id: hapticsToggle
+            width: toggleSize
+            height: toggleSize
+            icon: "ios-watch-vibrating"
+            onChecked: {
+                profileControl.profile = "general";
+                delayTimer.start();
+            }
+            onUnchecked: profileControl.profile = "silent";
+            Component.onCompleted: toggled = profileControl.profile == "general"
+        }
+
+        // Row 2, Column 1: WiFi Toggle
+        QuickSettingsToggle {
+            id: wifiToggle
+            width: toggleSize
+            height: toggleSize
+            icon: wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
+            onChecked:   wifiStatus.powered = true
+            onUnchecked: wifiStatus.powered = false
+            Component.onCompleted: toggled = wifiStatus.powered
+        }
+
+        // Row 2, Column 2: Bluetooth Toggle
+        QuickSettingsToggle {
+            id: bluetoothToggle
+            width: toggleSize
+            height: toggleSize
+            icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
+            onChecked:   btStatus.powered = true
+            onUnchecked: btStatus.powered = false
+            Component.onCompleted: toggled = btStatus.powered
+        }
+
+        // Row 2, Column 3: settings button
+        QuickSettingsToggle {
+            id: settingsButton
+            width: toggleSize
+            height: toggleSize
+            icon: "ios-settings"
+        }
     }
 
     Item {
