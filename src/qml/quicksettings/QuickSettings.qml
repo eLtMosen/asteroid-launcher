@@ -44,7 +44,7 @@ Item {
 
     property bool forbidLeft:  true
     property bool forbidRight: true
-property int toggleSize: Dims.l(28)
+    property int toggleSize: Dims.l(28)
 
     MceBatteryLevel {
         id: batteryChargePercentage
@@ -88,6 +88,53 @@ property int toggleSize: Dims.l(28)
 
     function updateBrightnessToggle() {
         brightnessToggle.toggled = displaySettings.brightness > 80
+    }
+    Item {
+        id: batteryMeter
+        width: rootitem.width  // Full screen width
+        height: rootitem.height * (batteryChargePercentage.percent / 100)  // Grows in height
+        anchors.bottom: rootitem.bottom  // Aligned to bottom
+
+        Rectangle {
+            id: fillRect
+            width: parent.width
+            height: parent.height
+            color: {
+                if (batteryChargePercentage.percent < 10) return "red"
+                else if (batteryChargePercentage.percent <= 30) return "orange"
+                else return "green"
+            }
+            opacity: 0.5
+        }
+    }
+
+    Item {
+        id: battery
+        anchors.horizontalCenter: rootitem.horizontalCenter
+        anchors.bottom: rootitem.bottom
+        height: parent.height/4
+        width: batteryIndicator.width
+
+        /*Icon {
+            id: batteryIcon
+            name: {
+                if(batteryChargeState.value == MceBatteryState.Charging) return "ios-battery-charging"
+                else if(batteryChargePercentage.percent > 15)            return "ios-battery-full"
+                else                                                     return "ios-battery-dead"
+            }
+            width:  parent.height/2
+            height: width
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+        }*/
+
+        Label {
+            id: batteryIndicator
+            font.pixelSize: parent.height/4
+            text: batteryChargePercentage.percent + "%"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
     }
 
     Grid {
@@ -158,34 +205,6 @@ property int toggleSize: Dims.l(28)
             width: toggleSize
             height: toggleSize
             icon: "ios-settings"
-        }
-    }
-
-    Item {
-        id: battery
-        anchors.horizontalCenter: rootitem.horizontalCenter
-        anchors.bottom: rootitem.bottom
-        height: parent.height/3
-        width: batteryIcon.width + batteryIndicator.width
-
-        Icon {
-            id: batteryIcon
-            name: {
-                if(batteryChargeState.value == MceBatteryState.Charging) return "ios-battery-charging"
-                else if(batteryChargePercentage.percent > 15)            return "ios-battery-full"
-                else                                                     return "ios-battery-dead"
-            }
-            width:  parent.height/2
-            height: width
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-        }
-        Label {
-            id: batteryIndicator
-            font.pixelSize: parent.height/4
-            text: batteryChargePercentage.percent + "%"
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
         }
     }
 }
