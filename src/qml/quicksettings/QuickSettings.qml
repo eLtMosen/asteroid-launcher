@@ -89,6 +89,7 @@ Item {
     function updateBrightnessToggle() {
         brightnessToggle.toggled = displaySettings.brightness > 80
     }
+
     Item {
         id: batteryMeter
         width: rootitem.width  // Full screen width
@@ -96,7 +97,7 @@ Item {
         anchors.bottom: rootitem.bottom  // Aligned to bottom
 
         Rectangle {
-            id: fillRect
+            id: chargeLayer
             width: parent.width
             height: parent.height
             color: {
@@ -104,7 +105,39 @@ Item {
                 else if (batteryChargePercentage.percent <= 30) return "orange"
                 else return "green"
             }
-            opacity: 0.5
+            opacity: 0.6
+            visible: batteryChargeState.value == MceBatteryState.Charging
+
+            Behavior on visible {
+                NumberAnimation {
+                    property: "opacity"
+                    from: batteryChargeState.value == MceBatteryState.Charging ? 0 : 0.5
+                    to: batteryChargeState.value == MceBatteryState.Charging ? 0.5 : 0
+                    duration: 250
+                }
+            }
+        }
+
+        Rectangle {
+            id: dischargeLayer
+            width: parent.width
+            height: parent.height
+            color: {
+                if (batteryChargePercentage.percent < 10) return "red"
+                else if (batteryChargePercentage.percent <= 30) return "orange"
+                else return "green"
+            }
+            opacity: 0.4
+            visible: batteryChargeState.value != MceBatteryState.Charging
+
+            Behavior on visible {
+                NumberAnimation {
+                    property: "opacity"
+                    from: batteryChargeState.value == MceBatteryState.Charging ? 0.5 : 0
+                    to: batteryChargeState.value == MceBatteryState.Charging ? 0 : 0.5
+                    duration: 250
+                }
+            }
         }
     }
 
