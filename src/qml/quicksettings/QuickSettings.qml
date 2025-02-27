@@ -35,11 +35,9 @@ import org.nemomobile.systemsettings 1.0
 import Nemo.Ngf 1.0
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
-import org.asteroid.settings 1.0
 import Connman 0.2
 import QtGraphicalEffects 1.15
-import Nemo.Configuration 1.0
-import QtMultimedia 5.8
+
 
 Item {
     id: rootitem
@@ -49,10 +47,6 @@ Item {
     property bool forbidLeft: true
     property bool forbidRight: true
     property int toggleSize: Dims.l(28)
-
-    VolumeControl {
-        id: volumeControl
-    }
 
     MceBatteryLevel {
         id: batteryChargePercentage
@@ -99,13 +93,6 @@ Item {
         path: "/net/connman/technology/wifi"
     }
 
-    ConfigurationValue {
-        id: preMuteLevel
-
-        key: "/desktop/asteroid/pre-mute-level"
-        defaultValue: 0
-    }
-
     function updateBrightnessToggle() {
         brightnessToggle.toggled = displaySettings.brightness > 80
     }
@@ -141,7 +128,7 @@ Item {
                 else if (batteryChargePercentage.percent <= 30) return "orange"
                 else return "green"
             }
-            opacity: 0.5
+            opacity: 0.33
             visible: mceChargerType.type != MceChargerType.None  // Charger connected
 
             Item {
@@ -190,7 +177,7 @@ Item {
                 else if (batteryChargePercentage.percent <= 30) return "orange"
                 else return "green"
             }
-            opacity: 0.5
+            opacity: 0.33
             visible: mceChargerType.type == MceChargerType.None  // No charger connected
 
             Item {
@@ -298,13 +285,8 @@ Item {
             id: soundToggle
             width: toggleSize
             height: toggleSize
-            icon: volumeControl.volume > 0 ? "ios-sound-indicator-high" : "ios-volume-mute"  // Reflect mute state
-            toggled: volumeControl.volume > 0  // On when volume is above 0
-            onChecked: {
-                // Swap current volume with preMuteLevel
-                [ volumeControl.volume, preMuteLevel.value ] = [ preMuteLevel.value, volumeControl.volume ]
-                delayTimer.start()  // Haptic feedback
-            }
+            icon: "ios-sound-indicator-high"
+            toggled: true
         }
 
         QuickSettingsToggle {
