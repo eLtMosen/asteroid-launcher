@@ -50,14 +50,13 @@ MouseArea {
     Rectangle {
         anchors.fill: parent
         radius: width/2
-        //anchors.margins: ma.width*0.1
         color: "#222222"
         opacity: ma.pressed ? 0.6 : ma.toggled ? 0.75 : 0.2
     }
 
     Icon {
         id: ic
-        width: parent.width*0.6
+        width: parent.width*0.5
         height: width
         anchors.centerIn: parent
         color: ma.pressed ? "lightgrey" : "white"

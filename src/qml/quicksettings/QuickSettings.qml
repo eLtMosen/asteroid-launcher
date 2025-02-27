@@ -36,7 +36,7 @@ import Nemo.Ngf 1.0
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
 import Connman 0.2
-
+import QtGraphicalEffects 1.15
 Item {
     id: rootitem
     width: parent.width
@@ -52,6 +52,10 @@ Item {
 
     MceBatteryState {
         id: batteryChargeState
+    }
+
+    MceChargerType {
+        id: mceChargerType
     }
 
     // Moved components outside Grid
@@ -95,6 +99,7 @@ Item {
         width: rootitem.width  // Full screen width
         height: rootitem.height * (batteryChargePercentage.percent / 100)  // Grows in height
         anchors.bottom: rootitem.bottom  // Aligned to bottom
+        clip: true  // Clip contents to batteryMeter bounds
 
         Rectangle {
             id: chargeLayer
@@ -105,15 +110,43 @@ Item {
                 else if (batteryChargePercentage.percent <= 30) return "orange"
                 else return "green"
             }
-            opacity: 0.6
-            visible: batteryChargeState.value == MceBatteryState.Charging
+            opacity: 0.5
+            visible: mceChargerType.type != MceChargerType.None  // Charger connected
 
-            Behavior on visible {
-                NumberAnimation {
-                    property: "opacity"
-                    from: batteryChargeState.value == MceBatteryState.Charging ? 0 : 0.5
-                    to: batteryChargeState.value == MceBatteryState.Charging ? 0.5 : 0
-                    duration: 250
+            Item {
+                id: waveUp
+                width: batteryMeter.width
+                height: rootitem.height / 3  // Matching dischargeLayer
+                y: chargeLayer.height  // Start just below chargeLayer
+
+                Rectangle {
+                    id: waveUpBase
+                    width: parent.width
+                    height: parent.height
+                    color: "#222222"  // Base color
+                    visible: false  // Hidden, used as source for gradient
+                }
+
+                LinearGradient {
+                    anchors.fill: waveUpBase
+                    source: waveUpBase
+                    start: Qt.point(0, 0)
+                    end: Qt.point(0, height)
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "#00FFFFFF" }  // Fully transparent
+                        GradientStop { position: 0.5; color: "#22FFFFFF" }  // ~0.13 opacity white (matching dischargeLayer)
+                        GradientStop { position: 1.0; color: "#00FFFFFF" }  // Fully transparent
+                    }
+                }
+
+                NumberAnimation on y {
+                    id: waveUpAnimation
+                    from: chargeLayer.height  // Start below chargeLayer
+                    to: -waveUp.height  // Move above batteryMeter
+                    duration: 1000  // Matching dischargeLayer duration
+                    easing.type: Easing.OutSine  // Matching dischargeLayer easing
+                    loops: Animation.Infinite
+                    running: chargeLayer.visible  // Sync with parent visibility
                 }
             }
         }
@@ -127,43 +160,84 @@ Item {
                 else if (batteryChargePercentage.percent <= 30) return "orange"
                 else return "green"
             }
-            opacity: 0.4
-            visible: batteryChargeState.value != MceBatteryState.Charging
+            opacity: 0.5
+            visible: mceChargerType.type == MceChargerType.None  // No charger connected
 
-            Behavior on visible {
-                NumberAnimation {
-                    property: "opacity"
-                    from: batteryChargeState.value == MceBatteryState.Charging ? 0.5 : 0
-                    to: batteryChargeState.value == MceBatteryState.Charging ? 0 : 0.5
-                    duration: 250
+            Item {
+                id: waveDown
+                width: batteryMeter.width
+                height: rootitem.height / 3  // 1/3 of screen height
+                y: 0 - height  // Start above dischargeLayer
+
+                Rectangle {
+                    id: waveDownBase
+                    width: parent.width
+                    height: parent.height
+                    color: "#222222"  // Base color
+                    visible: false  // Hidden, used as source for gradient
+                }
+
+                LinearGradient {
+                    anchors.fill: waveDownBase
+                    source: waveDownBase
+                    start: Qt.point(0, 0)
+                    end: Qt.point(0, height)
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "#00FFFFFF" }  // Fully transparent
+                        GradientStop { position: 0.5; color: "#22FFFFFF" }  // ~0.13 opacity white
+                        GradientStop { position: 1.0; color: "#00FFFFFF" }  // Fully transparent
+                    }
+                }
+
+                NumberAnimation on y {
+                    id: waveDownAnimation
+                    from: 0 - waveDown.height  // Start above dischargeLayer
+                    to: dischargeLayer.height  // Move below batteryMeter
+                    duration: 3000  // Slower for discharging
+                    easing.type: Easing.OutCubic
+                    loops: Animation.Infinite
+                    running: dischargeLayer.visible  // Sync with parent visibility
                 }
             }
         }
     }
 
     Item {
-        id: battery
+        id: batteryChargeIndicator
+        anchors.horizontalCenter: rootitem.horizontalCenter
+        anchors.top: rootitem.top
+        height: parent.height/4
+        width: batteryIndicator.width
+        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
+
+        Label {
+            id: batteryChargeText
+            font {
+                pixelSize: parent.height/5
+                bold: true
+            }
+
+            text: mceChargerType.type == MceChargerType.None ? "Discharging" : "Charging"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+    }
+
+    Item {
+        id: batteryPercent
         anchors.horizontalCenter: rootitem.horizontalCenter
         anchors.bottom: rootitem.bottom
         height: parent.height/4
         width: batteryIndicator.width
-
-        /*Icon {
-            id: batteryIcon
-            name: {
-                if(batteryChargeState.value == MceBatteryState.Charging) return "ios-battery-charging"
-                else if(batteryChargePercentage.percent > 15)            return "ios-battery-full"
-                else                                                     return "ios-battery-dead"
-            }
-            width:  parent.height/2
-            height: width
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-        }*/
+        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
 
         Label {
-            id: batteryIndicator
-            font.pixelSize: parent.height/4
+            id: batteryPercentText
+            font {
+                pixelSize: parent.height/3
+                styleName: "SemiBold"
+            }
+
             text: batteryChargePercentage.percent + "%"
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
