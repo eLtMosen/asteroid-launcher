@@ -59,7 +59,7 @@ Item {
         id: mceChargerType
     }
 
-    // Moved components outside Grid
+    // Sync brightness toggle with display settings
     DisplaySettings {
         id: displaySettings
         onBrightnessChanged: updateBrightnessToggle()
@@ -74,6 +74,7 @@ Item {
         id: profileControl
     }
 
+    // Haptic feedback delay timer
     Timer {
         id: delayTimer
         interval: 125
@@ -97,27 +98,24 @@ Item {
 
     Item {
         id: batteryMeter
-        width: rootitem.width  // Full screen width
-        anchors.bottom: rootitem.bottom  // Aligned to bottom
+        width: rootitem.width
+        anchors.bottom: rootitem.bottom
         clip: true  // Clip contents to batteryMeter bounds
 
-        // Base height from percentage
+        // Base height based on battery percentage
         property real baseHeight: rootitem.height * (batteryChargePercentage.percent / 100)
-        // Wave amplitude (5% of screen height)
-        property real waveAmplitude: rootitem.height * 0.05
-        // Wave timing property
-        property real waveTime: 0
+        property real waveAmplitude: rootitem.height * 0.05  // Wave wiggle range (5% of screen height)
+        property real waveTime: 0  // Timing for sine wave animation
 
-        // Animate waveTime for syncing
+        // Sine wave animation for top edge wiggle
         NumberAnimation on waveTime {
             from: 0
             to: 2 * Math.PI  // Full sine wave cycle
-            duration: 3000  // Sync with waveDown duration
+            duration: 3000  // Matches waveDown duration
             loops: Animation.Infinite
             running: true
         }
 
-        // Set height with sine wave wiggle
         height: baseHeight + waveAmplitude * Math.sin(waveTime)
 
         Rectangle {
@@ -135,15 +133,15 @@ Item {
             Item {
                 id: waveUp
                 width: batteryMeter.width
-                height: rootitem.height / 2  // Matching dischargeLayer
-                y: chargeLayer.height  // Start just below chargeLayer
+                height: rootitem.height / 2  // Half screen height for subtle emission
+                y: chargeLayer.height
 
                 Rectangle {
                     id: waveUpBase
                     width: parent.width
                     height: parent.height
-                    color: "#222222"  // Base color
-                    visible: false  // Hidden, used as source for gradient
+                    color: "#222222"
+                    visible: false
                 }
 
                 LinearGradient {
@@ -152,20 +150,19 @@ Item {
                     start: Qt.point(0, 0)
                     end: Qt.point(0, height)
                     gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#00FFFFFF" }  // Fully transparent
-                        GradientStop { position: 0.5; color: "#22FFFFFF" }  // ~0.13 opacity white
-                        GradientStop { position: 1.0; color: "#00FFFFFF" }  // Fully transparent
+                        GradientStop { position: 0.0; color: "#00FFFFFF" }
+                        GradientStop { position: 0.5; color: "#22FFFFFF" }
+                        GradientStop { position: 1.0; color: "#00FFFFFF" }
                     }
                 }
 
                 NumberAnimation on y {
-                    id: waveUpAnimation
-                    from: chargeLayer.height  // Start at wiggling top edge
-                    to: -waveUp.height  // Move above batteryMeter
-                    duration: 1000  // Faster for charging
+                    from: chargeLayer.height
+                    to: -waveUp.height
+                    duration: 1000
                     easing.type: Easing.OutSine
                     loops: Animation.Infinite
-                    running: chargeLayer.visible  // Sync with parent visibility
+                    running: chargeLayer.visible
                 }
             }
         }
@@ -185,15 +182,15 @@ Item {
             Item {
                 id: waveDown
                 width: batteryMeter.width
-                height: rootitem.height / 2  // 1/3 of screen height
-                y: -height  // Start above dischargeLayer
+                height: rootitem.height / 2  // Half screen height for subtle emission
+                y: -height
 
                 Rectangle {
                     id: waveDownBase
                     width: parent.width
                     height: parent.height
-                    color: "#222222"  // Base color
-                    visible: false  // Hidden, used as source for gradient
+                    color: "#222222"
+                    visible: false
                 }
 
                 LinearGradient {
@@ -202,24 +199,23 @@ Item {
                     start: Qt.point(0, 0)
                     end: Qt.point(0, height)
                     gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#00FFFFFF" }  // Fully transparent
-                        GradientStop { position: 0.5; color: "#22FFFFFF" }  // ~0.13 opacity white
-                        GradientStop { position: 1.0; color: "#00FFFFFF" }  // Fully transparent
+                        GradientStop { position: 0.0; color: "#00FFFFFF" }
+                        GradientStop { position: 0.5; color: "#22FFFFFF" }
+                        GradientStop { position: 1.0; color: "#00FFFFFF" }
                     }
                 }
 
                 SequentialAnimation on y {
                     id: waveDownAnimation
                     loops: Animation.Infinite
-                    running: dischargeLayer.visible  // Sync with parent visibility
-
+                    running: dischargeLayer.visible
                     PauseAnimation {
-                        duration: 1500  // Delay to sync with downward peak (3/4 of 3000ms cycle)
+                        duration: 1500  // Sync with downward peak of wiggle
                     }
                     NumberAnimation {
-                        from: -waveDown.height  // Start above dischargeLayer
-                        to: dischargeLayer.height  // Move below batteryMeter
-                        duration: 3000  // Full travel time
+                        from: -waveDown.height
+                        to: dischargeLayer.height
+                        duration: 3000
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -274,7 +270,6 @@ Item {
         columns: 3
         spacing: Dims.l(2)
 
-        // Row 1, Column 1: brightness Toggle
         QuickSettingsToggle {
             id: brightnessToggle
             width: toggleSize
@@ -285,7 +280,6 @@ Item {
             Component.onCompleted: updateBrightnessToggle()
         }
 
-        // Row 1, Column 2: Sound Toggle (dummy)
         QuickSettingsToggle {
             id: soundToggle
             width: toggleSize
@@ -293,7 +287,6 @@ Item {
             icon: "ios-sound-indicator-high"
         }
 
-        // Row 1, Column 3: Haptics Toggle
         QuickSettingsToggle {
             id: hapticsToggle
             width: toggleSize
@@ -307,29 +300,31 @@ Item {
             Component.onCompleted: toggled = profileControl.profile == "general"
         }
 
-        // Row 2, Column 1: WiFi Toggle
         QuickSettingsToggle {
             id: wifiToggle
             width: toggleSize
             height: toggleSize
             icon: wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
-            onChecked:   wifiStatus.powered = true
+            toggled: wifiStatus.powered  // Reflect WiFi power state
+            onChecked: wifiStatus.powered = true
             onUnchecked: wifiStatus.powered = false
-            Component.onCompleted: toggled = wifiStatus.powered
+            Component.onCompleted: Qt.callLater(function() { toggled = wifiStatus.powered })  // Sync after initialization
+            Connections {
+                target: wifiStatus
+                function onPoweredChanged() { wifiToggle.toggled = wifiStatus.powered }  // Update on power changes
+            }
         }
 
-        // Row 2, Column 2: Bluetooth Toggle
         QuickSettingsToggle {
             id: bluetoothToggle
             width: toggleSize
             height: toggleSize
             icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
-            onChecked:   btStatus.powered = true
+            onChecked: btStatus.powered = true
             onUnchecked: btStatus.powered = false
             Component.onCompleted: toggled = btStatus.powered
         }
 
-        // Row 2, Column 3: settings button
         QuickSettingsToggle {
             id: settingsButton
             width: toggleSize
