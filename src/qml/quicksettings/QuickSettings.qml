@@ -279,7 +279,7 @@ Item {
         // All toggles in a flat list with availability flags
         property var allToggles: [
             { component: brightnessToggleComponent, toggleAvailable: true },
-            { component: soundToggleComponent, toggleAvailable: false },
+            { component: soundToggleComponent, toggleAvailable: true },
             { component: hapticsToggleComponent, toggleAvailable: true },
             { component: wifiToggleComponent, toggleAvailable: true },
             { component: bluetoothToggleComponent, toggleAvailable: true },
@@ -334,69 +334,83 @@ Item {
                 contentX += contentWidth / 2
             }
         }
+    }
 
-        // Toggle components
-        Component {
-            id: brightnessToggleComponent
-            QuickSettingsToggle {
-                icon: "ios-sunny"
-                onChecked: displaySettings.brightness = 100
-                onUnchecked: displaySettings.brightness = 0
-                Component.onCompleted: updateBrightnessToggle()
+    PageDot {
+        id: pageDots
+        height: Dims.h(3)
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            bottom: parent.bottom
+            bottomMargin: Dims.h(3.8)
+        }
+        currentIndex: Math.floor((quickSettingsView.contentX / quickSettingsView.width) % quickSettingsView.rowCount)
+        dotNumber: quickSettingsView.rowCount
+        opacity: 0.5  // Base opacity for inactive dots
+        // Active dot gets full opacity via PageDot's internal logic
+    }
+
+    // Toggle components
+    Component {
+        id: brightnessToggleComponent
+        QuickSettingsToggle {
+            icon: "ios-sunny"
+            onChecked: displaySettings.brightness = 100
+            onUnchecked: displaySettings.brightness = 0
+            Component.onCompleted: updateBrightnessToggle()
+        }
+    }
+
+    Component {
+        id: soundToggleComponent
+        QuickSettingsToggle {
+            icon: "ios-sound-indicator-high"
+            toggled: true
+        }
+    }
+
+    Component {
+        id: hapticsToggleComponent
+        QuickSettingsToggle {
+            icon: "ios-watch-vibrating"
+            onChecked: {
+                profileControl.profile = "general"
+                delayTimer.start()
+            }
+            onUnchecked: profileControl.profile = "silent"
+            Component.onCompleted: toggled = profileControl.profile == "general"
+        }
+    }
+
+    Component {
+        id: wifiToggleComponent
+        QuickSettingsToggle {
+            icon: wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
+            toggled: wifiStatus.powered
+            onChecked: wifiStatus.powered = true
+            onUnchecked: wifiStatus.powered = false
+            Component.onCompleted: Qt.callLater(function() { toggled = wifiStatus.powered })
+            Connections {
+                target: wifiStatus
+                function onPoweredChanged() { toggled = wifiStatus.powered }
             }
         }
+    }
 
-        Component {
-            id: soundToggleComponent
-            QuickSettingsToggle {
-                icon: "ios-sound-indicator-high"
-                toggled: true
-            }
+    Component {
+        id: bluetoothToggleComponent
+        QuickSettingsToggle {
+            icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
+            onChecked: btStatus.powered = true
+            onUnchecked: btStatus.powered = false
+            Component.onCompleted: toggled = btStatus.powered
         }
+    }
 
-        Component {
-            id: hapticsToggleComponent
-            QuickSettingsToggle {
-                icon: "ios-watch-vibrating"
-                onChecked: {
-                    profileControl.profile = "general"
-                    delayTimer.start()
-                }
-                onUnchecked: profileControl.profile = "silent"
-                Component.onCompleted: toggled = profileControl.profile == "general"
-            }
-        }
-
-        Component {
-            id: wifiToggleComponent
-            QuickSettingsToggle {
-                icon: wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
-                toggled: wifiStatus.powered
-                onChecked: wifiStatus.powered = true
-                onUnchecked: wifiStatus.powered = false
-                Component.onCompleted: Qt.callLater(function() { toggled = wifiStatus.powered })
-                Connections {
-                    target: wifiStatus
-                    function onPoweredChanged() { toggled = wifiStatus.powered }
-                }
-            }
-        }
-
-        Component {
-            id: bluetoothToggleComponent
-            QuickSettingsToggle {
-                icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
-                onChecked: btStatus.powered = true
-                onUnchecked: btStatus.powered = false
-                Component.onCompleted: toggled = btStatus.powered
-            }
-        }
-
-        Component {
-            id: settingsButtonComponent
-            QuickSettingsToggle {
-                icon: "ios-settings"
-            }
+    Component {
+        id: settingsButtonComponent
+        QuickSettingsToggle {
+            icon: "ios-settings"
         }
     }
 }
