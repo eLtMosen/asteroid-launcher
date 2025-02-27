@@ -295,11 +295,10 @@ Item {
             for (var i = 0; i < availableToggles.length; i += 3) {
                 rows.push(availableToggles.slice(i, i + 3))
             }
-            // Repeat rows twice to simulate looping
-            return rows.concat(rows)
+            return rows
         }
 
-        contentWidth: width * rowCount * 2  // Double for looping
+        contentWidth: width * rowCount  // Width for actual rows only
 
         delegate: Item {
             id: pageItem
@@ -323,15 +322,14 @@ Item {
             }
         }
 
-        // Start at the first row of the first set
+        // Start at the first row
         Component.onCompleted: positionViewAtBeginning()
 
-        // Loop handling: reposition when reaching the end or start
-        onMovementEnded: {
-            if (contentX >= contentWidth / 2) {
-                contentX -= contentWidth / 2
-            } else if (contentX < 0) {
-                contentX += contentWidth / 2
+        // Sync currentIndex with visible item
+        onContentXChanged: {
+            var newIndex = Math.round(contentX / width)
+            if (newIndex >= 0 && newIndex < rowCount) {
+                currentIndex = newIndex
             }
         }
     }
@@ -344,10 +342,9 @@ Item {
             bottom: parent.bottom
             bottomMargin: Dims.h(3.8)
         }
-        currentIndex: Math.floor((quickSettingsView.contentX / quickSettingsView.width) % quickSettingsView.rowCount)
+        currentIndex: quickSettingsView.currentIndex
         dotNumber: quickSettingsView.rowCount
         opacity: 0.5  // Base opacity for inactive dots
-        // Active dot gets full opacity via PageDot's internal logic
     }
 
     // Toggle components
