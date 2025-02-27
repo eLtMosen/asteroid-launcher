@@ -35,17 +35,24 @@ import org.nemomobile.systemsettings 1.0
 import Nemo.Ngf 1.0
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
+import org.asteroid.settings 1.0
 import Connman 0.2
 import QtGraphicalEffects 1.15
+import Nemo.Configuration 1.0
+import QtMultimedia 5.8
 
 Item {
     id: rootitem
     width: parent.width
     height: parent.height
 
-    property bool forbidLeft:  true
+    property bool forbidLeft: true
     property bool forbidRight: true
     property int toggleSize: Dims.l(28)
+
+    VolumeControl {
+        id: volumeControl
+    }
 
     MceBatteryLevel {
         id: batteryChargePercentage
@@ -90,6 +97,13 @@ Item {
     NetworkTechnology {
         id: wifiStatus
         path: "/net/connman/technology/wifi"
+    }
+
+    ConfigurationValue {
+        id: preMuteLevel
+
+        key: "/desktop/asteroid/pre-mute-level"
+        defaultValue: 0
     }
 
     function updateBrightnessToggle() {
@@ -284,7 +298,13 @@ Item {
             id: soundToggle
             width: toggleSize
             height: toggleSize
-            icon: "ios-sound-indicator-high"
+            icon: volumeControl.volume > 0 ? "ios-sound-indicator-high" : "ios-volume-mute"  // Reflect mute state
+            toggled: volumeControl.volume > 0  // On when volume is above 0
+            onChecked: {
+                // Swap current volume with preMuteLevel
+                [ volumeControl.volume, preMuteLevel.value ] = [ preMuteLevel.value, volumeControl.volume ]
+                delayTimer.start()  // Haptic feedback
+            }
         }
 
         QuickSettingsToggle {
@@ -293,10 +313,10 @@ Item {
             height: toggleSize
             icon: "ios-watch-vibrating"
             onChecked: {
-                profileControl.profile = "general";
-                delayTimer.start();
+                profileControl.profile = "general"
+                delayTimer.start()
             }
-            onUnchecked: profileControl.profile = "silent";
+            onUnchecked: profileControl.profile = "silent"
             Component.onCompleted: toggled = profileControl.profile == "general"
         }
 
@@ -305,13 +325,13 @@ Item {
             width: toggleSize
             height: toggleSize
             icon: wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
-            toggled: wifiStatus.powered  // Reflect WiFi power state
+            toggled: wifiStatus.powered
             onChecked: wifiStatus.powered = true
             onUnchecked: wifiStatus.powered = false
-            Component.onCompleted: Qt.callLater(function() { toggled = wifiStatus.powered })  // Sync after initialization
+            Component.onCompleted: Qt.callLater(function() { toggled = wifiStatus.powered })
             Connections {
                 target: wifiStatus
-                function onPoweredChanged() { wifiToggle.toggled = wifiStatus.powered }  // Update on power changes
+                function onPoweredChanged() { wifiToggle.toggled = wifiStatus.powered }
             }
         }
 
