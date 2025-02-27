@@ -37,6 +37,7 @@ import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
 import Connman 0.2
 import QtGraphicalEffects 1.15
+
 Item {
     id: rootitem
     width: parent.width
@@ -97,9 +98,27 @@ Item {
     Item {
         id: batteryMeter
         width: rootitem.width  // Full screen width
-        height: rootitem.height * (batteryChargePercentage.percent / 100)  // Grows in height
         anchors.bottom: rootitem.bottom  // Aligned to bottom
         clip: true  // Clip contents to batteryMeter bounds
+
+        // Base height from percentage
+        property real baseHeight: rootitem.height * (batteryChargePercentage.percent / 100)
+        // Wave amplitude (5% of screen height)
+        property real waveAmplitude: rootitem.height * 0.05
+        // Wave timing property
+        property real waveTime: 0
+
+        // Animate waveTime for syncing
+        NumberAnimation on waveTime {
+            from: 0
+            to: 2 * Math.PI  // Full sine wave cycle
+            duration: 3000  // Sync with waveDown duration
+            loops: Animation.Infinite
+            running: true
+        }
+
+        // Set height with sine wave wiggle
+        height: baseHeight + waveAmplitude * Math.sin(waveTime)
 
         Rectangle {
             id: chargeLayer
@@ -116,7 +135,7 @@ Item {
             Item {
                 id: waveUp
                 width: batteryMeter.width
-                height: rootitem.height / 3  // Matching dischargeLayer
+                height: rootitem.height / 2  // Matching dischargeLayer
                 y: chargeLayer.height  // Start just below chargeLayer
 
                 Rectangle {
@@ -134,17 +153,17 @@ Item {
                     end: Qt.point(0, height)
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: "#00FFFFFF" }  // Fully transparent
-                        GradientStop { position: 0.5; color: "#22FFFFFF" }  // ~0.13 opacity white (matching dischargeLayer)
+                        GradientStop { position: 0.5; color: "#22FFFFFF" }  // ~0.13 opacity white
                         GradientStop { position: 1.0; color: "#00FFFFFF" }  // Fully transparent
                     }
                 }
 
                 NumberAnimation on y {
                     id: waveUpAnimation
-                    from: chargeLayer.height  // Start below chargeLayer
+                    from: chargeLayer.height  // Start at wiggling top edge
                     to: -waveUp.height  // Move above batteryMeter
-                    duration: 1000  // Matching dischargeLayer duration
-                    easing.type: Easing.OutSine  // Matching dischargeLayer easing
+                    duration: 1000  // Faster for charging
+                    easing.type: Easing.OutSine
                     loops: Animation.Infinite
                     running: chargeLayer.visible  // Sync with parent visibility
                 }
@@ -166,8 +185,8 @@ Item {
             Item {
                 id: waveDown
                 width: batteryMeter.width
-                height: rootitem.height / 3  // 1/3 of screen height
-                y: 0 - height  // Start above dischargeLayer
+                height: rootitem.height / 2  // 1/3 of screen height
+                y: -height  // Start above dischargeLayer
 
                 Rectangle {
                     id: waveDownBase
@@ -189,14 +208,20 @@ Item {
                     }
                 }
 
-                NumberAnimation on y {
+                SequentialAnimation on y {
                     id: waveDownAnimation
-                    from: 0 - waveDown.height  // Start above dischargeLayer
-                    to: dischargeLayer.height  // Move below batteryMeter
-                    duration: 3000  // Slower for discharging
-                    easing.type: Easing.OutCubic
                     loops: Animation.Infinite
                     running: dischargeLayer.visible  // Sync with parent visibility
+
+                    PauseAnimation {
+                        duration: 1500  // Delay to sync with downward peak (3/4 of 3000ms cycle)
+                    }
+                    NumberAnimation {
+                        from: -waveDown.height  // Start above dischargeLayer
+                        to: dischargeLayer.height  // Move below batteryMeter
+                        duration: 3000  // Full travel time
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
         }
@@ -216,7 +241,6 @@ Item {
                 pixelSize: parent.height/5
                 bold: true
             }
-
             text: mceChargerType.type == MceChargerType.None ? "Discharging" : "Charging"
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
@@ -237,7 +261,6 @@ Item {
                 pixelSize: parent.height/3
                 styleName: "SemiBold"
             }
-
             text: batteryChargePercentage.percent + "%"
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
