@@ -279,10 +279,10 @@ Item {
         // All toggles in a flat list with availability flags
         property var allToggles: [
             { component: brightnessToggleComponent, toggleAvailable: true },
-            { component: soundToggleComponent, toggleAvailable: true },
+            { component: bluetoothToggleComponent, toggleAvailable: true },
             { component: hapticsToggleComponent, toggleAvailable: true },
             { component: wifiToggleComponent, toggleAvailable: true },
-            { component: bluetoothToggleComponent, toggleAvailable: true },
+            { component: soundToggleComponent, toggleAvailable: true },
             { component: settingsButtonComponent, toggleAvailable: true }
         ]
 
