@@ -101,6 +101,128 @@ Item {
         brightnessToggle.toggled = displaySettings.brightness > 80
     }
 
+        Item {
+        id: batteryMeter
+        width: toggleSize * 1.5  // 2x wider than height
+        height: toggleSize * 0.5
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: quickSettingsView.top
+        anchors.bottomMargin: quickSettingsView.spacing * 4
+
+
+
+        Rectangle {
+            id: batteryOutline
+            width: parent.width
+            height: parent.height
+            color: "#222222"
+            opacity: mceChargerType.type == MceChargerType.None ? 0.2 : 0.75
+            radius: height / 2  // Rounded edges, adjusted for aesthetics
+        }
+        Rectangle {
+            id: batteryFill
+            height: parent.height
+            width: {
+                var baseWidth = parent.width * (batteryChargePercentage.percent / 100)
+                if (mceChargerType.type != MceChargerType.None) {
+                    // Wave effect when charging
+                    var waveAmplitude = parent.width * 0.05  // 5% of width for wave
+                    return baseWidth + waveAmplitude * Math.sin(waveTime)
+                }
+                return baseWidth  // Static width when not charging
+            }
+            color: colorArray[chargecolor]
+            anchors.left: parent.left
+            opacity: 0.4
+
+            // Wave animation properties
+            property real waveTime: 0
+            NumberAnimation on waveTime {
+                running: mceChargerType.type != MceChargerType.None
+                from: 0
+                to: 2 * Math.PI
+                duration: 1500  // Wave cycle duration in milliseconds
+                loops: Animation.Infinite
+            }
+        }
+
+        // Clip the fill to the rounded rectangle outline
+        layer.enabled: true
+        layer.effect: OpacityMask {
+            maskSource: Item {
+                width: batteryMeter.width
+                height: batteryMeter.height
+                Rectangle {
+                    anchors.fill: parent
+                    radius: batteryOutline.radius
+                }
+            }
+        }
+
+        /*Rectangle {
+            id: batteryTopOutline
+            width: parent.width
+            height: parent.height
+            color: "transparent"
+            border.color: "#222222"
+            border.width: 4
+            radius: batteryOutline.radius
+            opacity: 0.75
+        }*/
+    }
+
+    Item {
+        id: batteryPercent
+        anchors.centerIn: batteryMeter
+        height: batteryMeter.height / 2  // Adjusted to fit nicely
+        width: batteryIndicator.width
+        opacity: mceChargerType.type == MceChargerType.None ? 0.8 : 1
+
+        Label {
+            id: batteryPercentText
+            font {
+                pixelSize: parent.height * 1  // Scaled to fit
+                family: "Noto Sans"
+                styleName: "Condensed Bold"
+            }
+            text: batteryChargePercentage.percent + "%"
+            anchors.centerIn: parent
+        }
+    }
+
+    /*Item {
+        id: batteryChargeIndicator
+        anchors.horizontalCenter: batteryMeter.horizontalCenter
+        anchors.top: batteryMeter.bottom
+        anchors.topMargin: quickSettingsView.spacing
+        height: parent.height / 4
+        width: batteryIndicator.width
+        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
+
+        Label {
+            id: batteryChargeText
+            font {
+                pixelSize: parent.height / 2  // Adjusted for size
+                bold: true
+            }
+            text: mceChargerType.type == MceChargerType.None ? "Discharging" : "Charging"
+            anchors.centerIn: parent
+        }
+    }*/
+
+    PageDot {
+        id: pageDots
+        height: Dims.h(3)
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            bottom: parent.bottom
+            bottomMargin: Dims.h(3.8)
+        }
+        currentIndex: quickSettingsView.currentIndex
+        dotNumber: quickSettingsView.rowCount
+        opacity: 0.5  // Base opacity for inactive dots
+    }
+
     ListView {
         id: quickSettingsView
         anchors.centerIn: parent
@@ -170,97 +292,6 @@ Item {
                 currentIndex = newIndex
             }
         }
-    }
-
-    Item {
-        id: batteryMeter
-        width: toggleSize * 1.4  // 2x wider than height
-        height: toggleSize * 0.6
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: quickSettingsView.bottom
-        anchors.topMargin: quickSettingsView.spacing * 3
-
-        Rectangle {
-            id: batteryOutline
-            width: parent.width
-            height: parent.height
-            color: "#222222"
-            opacity: 0.75
-            radius: height / 2  // Rounded edges, adjusted for aesthetics
-        }
-        Rectangle {
-            id: batteryFill
-            width: parent.width * (batteryChargePercentage.percent / 100)
-            height: parent.height
-            color: colorArray[chargecolor]
-            anchors.left: parent.left
-            opacity: 0.95
-        }
-
-        // Clip the fill to the rounded rectangle outline
-        layer.enabled: true
-        layer.effect: OpacityMask {
-            maskSource: Item {
-                width: batteryMeter.width
-                height: batteryMeter.height
-                Rectangle {
-                    anchors.fill: parent
-                    radius: batteryOutline.radius
-                }
-            }
-        }
-    }
-
-    Item {
-        id: batteryPercent
-        anchors.centerIn: batteryMeter
-        height: batteryMeter.height / 2  // Adjusted to fit nicely
-        width: batteryIndicator.width
-        opacity: mceChargerType.type == MceChargerType.None ? 0.9 : 1
-
-        Label {
-            id: batteryPercentText
-            font {
-                pixelSize: parent.height * 1  // Scaled to fit
-                family: "Noto Sans"
-                styleName: "Condensed Bold"
-            }
-            text: batteryChargePercentage.percent + "%"
-            anchors.centerIn: parent
-        }
-    }
-
-    Item {
-        id: batteryChargeIndicator
-        anchors.horizontalCenter: batteryMeter.horizontalCenter
-        anchors.top: batteryMeter.bottom
-        anchors.topMargin: quickSettingsView.spacing
-        height: parent.height / 4
-        width: batteryIndicator.width
-        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
-
-        Label {
-            id: batteryChargeText
-            font {
-                pixelSize: parent.height / 2  // Adjusted for size
-                bold: true
-            }
-            text: mceChargerType.type == MceChargerType.None ? "Discharging" : "Charging"
-            anchors.centerIn: parent
-        }
-    }
-
-    PageDot {
-        id: pageDots
-        height: Dims.h(3)
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            top: parent.top
-            topMargin: Dims.h(3.8)
-        }
-        currentIndex: quickSettingsView.currentIndex
-        dotNumber: quickSettingsView.rowCount
-        opacity: 0.5  // Base opacity for inactive dots
     }
 
     // Toggle components
