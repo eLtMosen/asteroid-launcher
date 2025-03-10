@@ -54,8 +54,20 @@ Item {
     property bool chargeAnimationsCompleted: false
 
     MceBatteryLevel { id: batteryChargePercentage }
+
     MceBatteryState { id: batteryChargeState }
+
     MceChargerType { id: mceChargerType }
+
+    DBusInterface {
+        id: mce_dbus
+
+        service: "com.nokia.mce"
+        path: "/com/nokia/mce/request"
+        iface: "com.nokia.mce.request"
+
+        bus: DBus.SystemBus
+    }
 
     DisplaySettings {
         id: displaySettings
@@ -192,6 +204,8 @@ Item {
             { component: hapticsToggleComponent, toggleAvailable: true },
             { component: wifiToggleComponent, toggleAvailable: true }, //DeviceInfo.hasWlan
             { component: soundToggleComponent, toggleAvailable: true }, //DeviceInfo.hasSound
+            { component: cinemaToggleComponent, toggleAvailable: true },
+            { component: lockButtonComponent, toggleAvailable: true },
             { component: settingsButtonComponent, toggleAvailable: true }
         ]
 
@@ -347,8 +361,6 @@ Item {
         }
     }
 
-    Component { id: soundToggleComponent; QuickSettingsToggle { icon: "ios-sound-indicator-high"; toggled: true } }
-
     Component {
         id: hapticsToggleComponent
         QuickSettingsToggle {
@@ -381,5 +393,21 @@ Item {
         }
     }
 
+    Component { id: soundToggleComponent; QuickSettingsToggle { icon: "ios-sound-indicator-high"; toggled: true } }
+    Component { id: cinemaToggleComponent; QuickSettingsToggle { icon: "ios-film-outline"; toggled: true } }
+
+    Component { id: lockButtonComponent
+        QuickSettingsToggle {
+            id: lockedToggle
+            anchors.top: rootitem.top
+            anchors.horizontalCenter: rootitem.horizontalCenter
+            icon: "ios-unlock"
+            togglable: false
+            toggled: false
+            onUnchecked: mce_dbus.call("req_display_state_lpm", undefined)
+        }
+    }
+
     Component { id: settingsButtonComponent; QuickSettingsToggle { icon: "ios-settings" } }
 }
+
