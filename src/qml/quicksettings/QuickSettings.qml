@@ -37,6 +37,7 @@ import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
 import Connman 0.2
 import QtGraphicalEffects 1.15
+import Qt.labs.settings 1.0
 
 Item {
     id: rootitem
@@ -46,6 +47,10 @@ Item {
     property bool forbidLeft: true
     property bool forbidRight: true
     property int toggleSize: Dims.l(30)  // Increased toggle size
+    property real chargecolor: Math.floor(batteryChargePercentage.percent / 33.35)
+    readonly property var colorArray: [ "red", "yellow", Qt.rgba(.318, 1, .051, .9)]
+
+    Item { Settings { fileName: "/etc/asteroid/machine.conf" Component.onCompleted: console.log(value("Capabilities/HAS_WLAN")) } }
 
     MceBatteryLevel {
         id: batteryChargePercentage
@@ -96,173 +101,6 @@ Item {
         brightnessToggle.toggled = displaySettings.brightness > 80
     }
 
-    Item {
-        id: batteryMeter
-        width: rootitem.width
-        anchors.bottom: rootitem.bottom
-        clip: true  // Clip contents to batteryMeter bounds
-
-        // Base height based on battery percentage
-        property real baseHeight: rootitem.height * (batteryChargePercentage.percent / 100)
-        property real waveAmplitude: rootitem.height * 0.05  // Wave wiggle range (5% of screen height)
-        property real waveTime: 0  // Timing for sine wave animation
-
-        // Sine wave animation for top edge wiggle
-        NumberAnimation on waveTime {
-            from: 0
-            to: 2 * Math.PI  // Full sine wave cycle
-            duration: 3000  // Matches waveDown duration
-            loops: Animation.Infinite
-            running: true
-        }
-
-        height: baseHeight + waveAmplitude * Math.sin(waveTime)
-
-        Rectangle {
-            id: chargeLayer
-            width: parent.width
-            height: parent.height
-            color: {
-                if (batteryChargePercentage.percent < 10) return "red"
-                else if (batteryChargePercentage.percent <= 30) return "orange"
-                else return "green"
-            }
-            opacity: 0.33
-            visible: mceChargerType.type != MceChargerType.None  // Charger connected
-
-            Item {
-                id: waveUp
-                width: batteryMeter.width
-                height: rootitem.height / 2  // Half screen height for subtle emission
-                y: chargeLayer.height
-
-                Rectangle {
-                    id: waveUpBase
-                    width: parent.width
-                    height: parent.height
-                    color: "#222222"
-                    visible: false
-                }
-
-                LinearGradient {
-                    anchors.fill: waveUpBase
-                    source: waveUpBase
-                    start: Qt.point(0, 0)
-                    end: Qt.point(0, height)
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#00FFFFFF" }
-                        GradientStop { position: 0.5; color: "#22FFFFFF" }
-                        GradientStop { position: 1.0; color: "#00FFFFFF" }
-                    }
-                }
-
-                NumberAnimation on y {
-                    from: chargeLayer.height
-                    to: -waveUp.height
-                    duration: 1000
-                    easing.type: Easing.OutSine
-                    loops: Animation.Infinite
-                    running: chargeLayer.visible
-                }
-            }
-        }
-
-        Rectangle {
-            id: dischargeLayer
-            width: parent.width
-            height: parent.height
-            color: {
-                if (batteryChargePercentage.percent < 10) return "red"
-                else if (batteryChargePercentage.percent <= 30) return "orange"
-                else return "green"
-            }
-            opacity: 0.33
-            visible: mceChargerType.type == MceChargerType.None  // No charger connected
-
-            Item {
-                id: waveDown
-                width: batteryMeter.width
-                height: rootitem.height / 2  // Half screen height for subtle emission
-                y: -height
-
-                Rectangle {
-                    id: waveDownBase
-                    width: parent.width
-                    height: parent.height
-                    color: "#222222"
-                    visible: false
-                }
-
-                LinearGradient {
-                    anchors.fill: waveDownBase
-                    source: waveDownBase
-                    start: Qt.point(0, 0)
-                    end: Qt.point(0, height)
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#00FFFFFF" }
-                        GradientStop { position: 0.5; color: "#22FFFFFF" }
-                        GradientStop { position: 1.0; color: "#00FFFFFF" }
-                    }
-                }
-
-                SequentialAnimation on y {
-                    id: waveDownAnimation
-                    loops: Animation.Infinite
-                    running: dischargeLayer.visible
-                    PauseAnimation {
-                        duration: 1500  // Sync with downward peak of wiggle
-                    }
-                    NumberAnimation {
-                        from: -waveDown.height
-                        to: dischargeLayer.height
-                        duration: 3000
-                        easing.type: Easing.OutCubic
-                    }
-                }
-            }
-        }
-    }
-
-    Item {
-        id: batteryChargeIndicator
-        anchors.horizontalCenter: rootitem.horizontalCenter
-        anchors.top: rootitem.top
-        height: parent.height/4
-        width: batteryIndicator.width
-        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
-
-        Label {
-            id: batteryChargeText
-            font {
-                pixelSize: parent.height/5
-                bold: true
-            }
-            text: mceChargerType.type == MceChargerType.None ? "Discharging" : "Charging"
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-    }
-
-    Item {
-        id: batteryPercent
-        anchors.horizontalCenter: rootitem.horizontalCenter
-        anchors.bottom: rootitem.bottom
-        height: parent.height/4
-        width: batteryIndicator.width
-        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
-
-        Label {
-            id: batteryPercentText
-            font {
-                pixelSize: parent.height/3
-                styleName: "SemiBold"
-            }
-            text: batteryChargePercentage.percent + "%"
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-    }
-
     ListView {
         id: quickSettingsView
         anchors.centerIn: parent
@@ -281,8 +119,8 @@ Item {
             { component: brightnessToggleComponent, toggleAvailable: true },
             { component: bluetoothToggleComponent, toggleAvailable: true },
             { component: hapticsToggleComponent, toggleAvailable: true },
-            { component: wifiToggleComponent, toggleAvailable: true },
-            { component: soundToggleComponent, toggleAvailable: true },
+            { component: wifiToggleComponent, toggleAvailable: DeviceInfo.hasWlan }, //DeviceInfo.hasWlan
+            { component: soundToggleComponent, toggleAvailable: true }, //DeviceInfo.hasSpeaker
             { component: settingsButtonComponent, toggleAvailable: true }
         ]
 
@@ -334,13 +172,91 @@ Item {
         }
     }
 
+    Item {
+        id: batteryMeter
+        width: toggleSize * 1.4  // 2x wider than height
+        height: toggleSize * 0.6
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: quickSettingsView.bottom
+        anchors.topMargin: quickSettingsView.spacing * 3
+
+        Rectangle {
+            id: batteryOutline
+            width: parent.width
+            height: parent.height
+            color: "#222222"
+            opacity: 0.75
+            radius: height / 2  // Rounded edges, adjusted for aesthetics
+        }
+        Rectangle {
+            id: batteryFill
+            width: parent.width * (batteryChargePercentage.percent / 100)
+            height: parent.height
+            color: colorArray[chargecolor]
+            anchors.left: parent.left
+            opacity: 0.95
+        }
+
+        // Clip the fill to the rounded rectangle outline
+        layer.enabled: true
+        layer.effect: OpacityMask {
+            maskSource: Item {
+                width: batteryMeter.width
+                height: batteryMeter.height
+                Rectangle {
+                    anchors.fill: parent
+                    radius: batteryOutline.radius
+                }
+            }
+        }
+    }
+
+    Item {
+        id: batteryPercent
+        anchors.centerIn: batteryMeter
+        height: batteryMeter.height / 2  // Adjusted to fit nicely
+        width: batteryIndicator.width
+        opacity: mceChargerType.type == MceChargerType.None ? 0.9 : 1
+
+        Label {
+            id: batteryPercentText
+            font {
+                pixelSize: parent.height * 1  // Scaled to fit
+                family: "Noto Sans"
+                styleName: "Condensed Bold"
+            }
+            text: batteryChargePercentage.percent + "%"
+            anchors.centerIn: parent
+        }
+    }
+
+    Item {
+        id: batteryChargeIndicator
+        anchors.horizontalCenter: batteryMeter.horizontalCenter
+        anchors.top: batteryMeter.bottom
+        anchors.topMargin: quickSettingsView.spacing
+        height: parent.height / 4
+        width: batteryIndicator.width
+        opacity: mceChargerType.type == MceChargerType.None ? 0.4 : 0.8
+
+        Label {
+            id: batteryChargeText
+            font {
+                pixelSize: parent.height / 2  // Adjusted for size
+                bold: true
+            }
+            text: mceChargerType.type == MceChargerType.None ? "Discharging" : "Charging"
+            anchors.centerIn: parent
+        }
+    }
+
     PageDot {
         id: pageDots
         height: Dims.h(3)
         anchors {
             horizontalCenter: parent.horizontalCenter
-            bottom: parent.bottom
-            bottomMargin: Dims.h(3.8)
+            top: parent.top
+            topMargin: Dims.h(3.8)
         }
         currentIndex: quickSettingsView.currentIndex
         dotNumber: quickSettingsView.rowCount
